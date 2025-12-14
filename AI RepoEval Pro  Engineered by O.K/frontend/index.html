@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en" class="dark"> <!-- Permanently set to dark mode -->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI GitHub Repository Evaluator</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Changed font to Times New Roman */
+        :root {
+            --primary-color: #3b82f6; /* Blue 500 */
+            --secondary-color: #f59e0b; /* Amber 500 */
+        }
+        /* Base styles are now the dark theme */
+        body {
+            font-family: 'Times New Roman', Times, serif; /* Updated Font */
+            background-color: #111827; /* Dark background (gray-900) */
+            color: #e5e7eb; /* Light text */
+            transition: background-color 0.5s, color 0.5s;
+        }
+
+        /* Page Transitions & Animation */
+        .page-content {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+        }
+        .page-content.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .score-box {
+            background-image: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px -3px rgba(30, 64, 175, 0.3), 0 4px 6px -2px rgba(30, 64, 175, 0.1);
+        }
+        .level-badge {
+            font-size: 1rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 700;
+        }
+        .loading-spinner {
+            border: 4px solid #374151; /* Dark Gray */
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite, fade-in 0.5s;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Card styles for Dark Mode */
+        .grid-card {
+            background-color: #1f2937; /* Darker background (gray-800) */
+            color: #d1d5db; /* Light gray text */
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid #374151; /* subtle border */
+            border-left: 4px solid transparent;
+        }
+        .grid-card:hover {
+            transform: translateY(-5px) scale(1.01);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Border colors for cards */
+        .border-blue-500 { border-left-color: #3b82f6; }
+        .border-green-500 { border-left-color: #10b981; }
+        .border-purple-500 { border-left-color: #8b5cf6; }
+        .border-yellow-500 { border-left-color: #f59e0b; }
+        .border-red-500 { border-left-color: #ef4444; }
+
+    </style>
+</head>
+<body onload="navigate('home');">
+
+    <!-- Navigation Bar -->
+    <nav class="bg-gray-800 shadow-lg sticky top-0 z-10 transition duration-300">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <span class="text-2xl font-extrabold text-blue-500">AI RepoEval <span class="text-sm font-normal text-gray-400">Pro</span></span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button class="nav-link text-gray-300 hover:text-blue-500 font-medium transition duration-150" data-page="home">Home</button>
+                    <button class="nav-link text-gray-300 hover:text-blue-500 font-medium transition duration-150" data-page="evaluator">Evaluator</button>
+                    <button class="nav-link text-gray-300 hover:text-blue-500 font-medium transition duration-150" data-page="about">About</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <main class="max-w-6xl mx-auto p-4 sm:p-8">
+
+        <!-- 1. Home Page -->
+        <section id="page-home" class="page-content hidden">
+            <div class="py-16 text-center mt-8 rounded-2xl shadow-2xl bg-gray-800 transition duration-500 border border-gray-700">
+                <h2 class="text-5xl font-extrabold text-white mb-4 tracking-tight">
+                    The Ultimate Code Maturity Assessment
+                </h2>
+                <p class="text-xl text-gray-400 mb-8 max-w-3xl mx-auto">
+                    Go beyond simple static analysis. Our AI provides dual-perspective evaluation—Recruiter readiness and Senior Mentor guidance—to validate and elevate your technical profile.
+                </p>
+                <button onclick="navigate('evaluator')"
+                        class="px-10 py-4 bg-blue-600 text-white text-xl font-semibold rounded-full hover:bg-blue-700 transition duration-300 transform hover:scale-105 shadow-xl shadow-blue-500/50 focus:outline-none focus:ring-4 focus:ring-blue-300">
+                    Launch AI Evaluation
+                </button>
+            </div>
+
+            <div class="mt-16">
+                <h3 class="text-3xl font-bold text-white mb-8 text-center">Why Choose Dual-View Analysis?</h3>
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="grid-card border-blue-500 hover:shadow-lg hover:shadow-blue-900/40">
+                        <div class="text-blue-500 text-3xl mb-3">💼</div>
+                        <h4 class="text-xl font-bold mb-2 text-white">Recruiter View</h4>
+                        <p class="text-gray-400 text-sm">Focuses on project completeness, commercial relevance, maintainability, and signals of job-readiness that hiring managers look for.</p>
+                    </div>
+                    <div class="grid-card border-green-500 hover:shadow-lg hover:shadow-green-900/40">
+                        <div class="text-green-500 text-3xl mb-3">🛠️</div>
+                        <h4 class="text-xl font-bold mb-2 text-white">Mentor View</h4>
+                        <p class="text-gray-400 text-sm">Provides actionable, technical feedback on design patterns, Git hygiene, code smells, and testing philosophy for senior-level growth.</p>
+                    </div>
+                    <div class="grid-card border-yellow-500 hover:shadow-lg hover:shadow-yellow-900/40">
+                        <div class="text-yellow-500 text-3xl mb-3">🧠</div>
+                        <h4 class="text-xl font-bold mb-2 text-white">Interview Prep</h4>
+                        <p class="text-gray-400 text-sm">Generates custom, challenging interview questions based on the exact skills and maturity level demonstrated in your codebase.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Evaluator Page -->
+        <section id="page-evaluator" class="page-content hidden">
+            <h1 class="text-3xl font-bold text-white mb-6 text-center pt-8">
+                Repository Analysis Center
+            </h1>
+            <p class="text-center text-gray-400 mb-8">
+                Submit a valid GitHub URL to receive your comprehensive AI report in seconds.
+            </p>
+
+            <!-- Input Form -->
+            <div class="bg-gray-800 p-6 rounded-xl shadow-xl mb-8 border border-gray-700">
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <input type="text" id="repoUrl" placeholder="Enter GitHub Repo URL (e.g., https://github.com/user/project)"
+                           class="flex-grow p-3 border border-gray-600 bg-gray-700 text-white rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                           value="https://github.com/my-dev/e-commerce-backend-api">
+                    <button id="analyzeBtn"
+                            class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition duration-150 focus:outline-none focus:ring-4 focus:ring-blue-300 disabled:opacity-50">
+                        Analyze Repository
+                    </button>
+                </div>
+                <div id="statusMessage" class="text-sm mt-3 text-center transition-all duration-300 hidden"></div>
+            </div>
+
+            <!-- Documentation Refiner Utility (New Gemini Feature) -->
+            <div class="bg-gray-800 p-6 rounded-xl shadow-xl mb-8 border border-gray-700 border-t-4 border-purple-500">
+                <h2 class="text-2xl font-bold text-purple-400 mb-4">
+                    Documentation Refiner ✨
+                </h2>
+                <p class="text-gray-400 mb-4 text-sm">
+                    Use the Gemini LLM to instantly improve documentation, commit messages, or any project text.
+                </p>
+
+                <div class="flex flex-col md:flex-row gap-4 mb-4">
+                    <textarea id="refinerInput" placeholder="Paste text here (e.g., a complex code comment or a README draft)..."
+                              rows="4" class="flex-grow p-3 border border-gray-600 bg-gray-700 text-white rounded-lg focus:ring-purple-500 focus:border-purple-500 transition duration-150">This part handles the data input, but it's slow, so we need to fix it soon.</textarea>
+                    
+                    <div class="flex flex-col w-full md:w-1/3 space-y-3">
+                        <select id="refinerStyle" class="p-3 border border-gray-600 bg-gray-700 text-white rounded-lg focus:ring-purple-500 focus:border-purple-500 transition duration-150">
+                            <option value="Professional & Formal">Professional & Formal</option>
+                            <option value="Concise & Direct (Technical)">Concise & Direct (Technical)</option>
+                            <option value="Marketing Hook (Exciting)">Marketing Hook (Exciting)</option>
+                            <option value="Detailed Explanation (Tutorial)">Detailed Explanation (Tutorial)</option>
+                        </select>
+                        <button id="refineBtn"
+                                class="px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition duration-150 focus:outline-none focus:ring-4 focus:ring-purple-300 disabled:opacity-50">
+                            Refine Text ✨
+                        </button>
+                    </div>
+                </div>
+
+                <div id="refinerOutput" class="p-4 bg-gray-900 border border-gray-700 rounded-lg whitespace-pre-wrap min-h-[50px] text-gray-300 italic text-sm">
+                    Refined output will appear here...
+                </div>
+                <div id="refinerStatus" class="text-sm mt-3 text-center transition-all duration-300 hidden"></div>
+            </div>
+            
+            <!-- Loading & Result Container -->
+            <div id="loading" class="hidden flex justify-center items-center py-10 bg-gray-800 rounded-xl shadow-inner border border-gray-700">
+                <div class="loading-spinner"></div>
+                <p class="ml-4 text-gray-400 font-medium animate-pulse">
+                    AI Mentor is reviewing codebase structure and commit history...
+                </p>
+            </div>
+
+            <div id="reportContainer" class="hidden">
+                <!-- Report content will be injected here -->
+            </div>
+        </section>
+
+        <!-- 3. About Page -->
+        <section id="page-about" class="page-content hidden">
+            <div class="mt-8">
+                <h2 class="text-3xl font-bold text-white mb-6 text-center">Platform Architecture & Features</h2>
+
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- Card 1: Core Analysis -->
+                    <div class="grid-card border-blue-500">
+                        <div class="text-blue-500 text-3xl mb-3">🤖</div>
+                        <h3 class="text-xl font-bold mb-2 text-white">Structured Report Generation</h3>
+                        <p class="text-gray-400 text-sm">We use the **Gemini API** with a strict **JSON Schema** to ensure every report is consistently structured, professional, and contains zero 'fluff', focusing on actionable data points.</p>
+                    </div>
+
+                    <!-- Card 2: Voice Feedback -->
+                    <div class="grid-card border-green-500">
+                        <div class="text-green-500 text-3xl mb-3">🗣️</div>
+                        <h3 class="text-xl font-bold mb-2 text-white">Integrated TTS Mentor</h3>
+                        <p class="text-gray-400 text-sm">The Mentor View is powered by the **Gemini TTS API** (`gemini-2.5-flash-preview-tts`). This provides an immersive audio experience for receiving constructive growth guidance.</p>
+                    </div>
+                    
+                    <!-- Card 3: New Feature -->
+                    <div class="grid-card border-purple-500">
+                        <div class="text-purple-500 text-3xl mb-3">✍️</div>
+                        <h3 class="text-xl font-bold mb-2 text-white">AI Documentation Refiner</h3>
+                        <p class="text-gray-400 text-sm">This new utility uses the **Gemini API** to instantly rewrite and format any text block (READMEs, comments, etc.) based on a desired professional tone, ensuring clear communication.</p>
+                    </div>
+
+                    <!-- Card 4: Career Focus -->
+                    <div class="grid-card border-yellow-500">
+                        <div class="text-yellow-500 text-3xl mb-3">📚</div>
+                        <h3 class="text-xl font-bold mb-2 text-white">AI Interview Questioning</h3>
+                        <p class="text-gray-400 text-sm">Generates custom, challenging interview questions based on the exact skills and maturity level demonstrated in your codebase, enhancing your career preparation.</p>
+                    </div>
+                </div>
+
+                <!-- Author Details Section -->
+                <div class="mt-10 bg-gray-800 p-6 rounded-xl shadow-lg border-t-4 border-blue-500 border-gray-700">
+                    <h3 class="text-2xl font-bold text-blue-500 mb-4 border-b border-gray-600 pb-2">
+                        🚀 Author & Lead Engineer
+                    </h3>
+                    <div class="space-y-3 text-gray-300">
+                        <p>
+                            <span class="font-bold w-24 inline-block">Name:</span>
+                            O.K.
+                        </p>
+                        <p>
+                            <span class="font-bold w-24 inline-block">Email:</span>
+                            <a href="mailto:ok176471@gmail.com" target="_blank" class="text-blue-400 hover:underline">ok176471@gmail.com</a>
+                        </p>
+                        <p>
+                            <span class="font-bold w-24 inline-block">LinkedIn:</span>
+                            <a href="https://www.linkedin.com/in/om-kale-1663a0276/" target="_blank" class="text-blue-400 hover:underline">om-kale-1663a0276</a>
+                        </p>
+                        <p>
+                            <span class="font-bold w-24 inline-block">GitHub:</span>
+                            <a href="https://github.com/OmKale000" target="_blank" class="text-blue-400 hover:underline">OmKale000</a>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="mt-10 bg-gray-700 p-6 rounded-xl text-center text-sm text-gray-400 italic border border-gray-600">
+                    Disclaimer: Since direct code scanning is not permitted in this environment, all analysis is performed on a simulated, hypothetical project inferred from the semantics of the provided GitHub URL.
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-16 py-8 bg-gray-900 text-gray-400 transition duration-300">
+        <div class="max-w-4xl mx-auto text-center font-bold">
+            AI RepoEval Pro | Engineered by O.K.
+        </div>
+    </footer>
+
+    <!-- const BACKEND_API = "http://localhost:3000/gemini"; -->
+    <script type="module">
+        const API_KEY = ""; // Canvas will automatically provide the key at runtime
+
+        // DOM elements
+        const repoUrlInput = document.getElementById('repoUrl');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loadingDiv = document.getElementById('loading');
+        const reportContainer = document.getElementById('reportContainer');
+        const statusMessageDiv = document.getElementById('statusMessage');
+        const navLinks = document.querySelectorAll('.nav-link');
+        
+        // Refiner elements
+        const refineBtn = document.getElementById('refineBtn');
+        const refinerInput = document.getElementById('refinerInput');
+        const refinerStyle = document.getElementById('refinerStyle');
+        const refinerOutput = document.getElementById('refinerOutput');
+        const refinerStatus = document.getElementById('refinerStatus');
+
+
+        // State management for SPA
+        let currentPage = 'home';
+        const pageElements = {
+            home: document.getElementById('page-home'),
+            evaluator: document.getElementById('page-evaluator'),
+            about: document.getElementById('page-about'),
+        };
+
+        // --- Utility Functions ---
+
+        /** Function to make the API call with exponential backoff */
+        async function fetchWithRetry(url, options, maxRetries = 5) {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return await response.json();
+                } catch (error) {
+                    console.error(`Attempt ${i + 1} failed:`, error);
+                    if (i < maxRetries - 1) {
+                        const delay = Math.pow(2, i) * 1000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    } else {
+                        throw new Error("API request failed after multiple retries.");
+                    }
+                }
+            }
+        }
+
+        // --- TTS Helper Functions (Existing) ---
+
+        /** Converts a base64 string to an ArrayBuffer. */
+        function base64ToArrayBuffer(base64) {
+            const binaryString = atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        /** Converts PCM 16-bit audio data into a playable WAV Blob. */
+        function pcmToWav(pcm16, sampleRate) {
+            const buffer = new ArrayBuffer(44 + pcm16.length * 2);
+            const view = new DataView(buffer);
+
+            // Helper to write string to DataView
+            function writeString(view, offset, string) {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            }
+
+            // RIFF identifier
+            writeString(view, 0, 'RIFF');
+            // file length
+            view.setUint32(4, 36 + pcm16.length * 2, true);
+            // RIFF type
+            writeString(view, 8, 'WAVE');
+            // format chunk identifier
+            writeString(view, 12, 'fmt ');
+            // format chunk length
+            view.setUint32(16, 16, true);
+            // sample format (raw)
+            view.setUint16(20, 1, true);
+            // channel count
+            view.setUint16(22, 1, true);
+            // sample rate
+            view.setUint32(24, sampleRate, true);
+            // byte rate (sample rate * block align)
+            view.setUint32(28, sampleRate * 2, true);
+            // block align (channels * bytes per sample)
+            view.setUint16(32, 2, true);
+            // bits per sample
+            view.setUint16(34, 16, true);
+            // data chunk identifier
+            writeString(view, 36, 'data');
+            // data chunk length
+            view.setUint32(40, pcm16.length * 2, true);
+
+            // Write PCM data
+            let offset = 44;
+            for (let i = 0; i < pcm16.length; i++, offset += 2) {
+                view.setInt16(offset, pcm16[i], true);
+            }
+
+            return new Blob([buffer], { type: 'audio/wav' });
+        }
+
+        /** Calls Gemini TTS API to speak the mentor feedback. */
+        window.speakMentorFeedback = async function(text) {
+            const speechBtn = document.getElementById('speechBtn');
+            if (!speechBtn) return;
+
+            speechBtn.disabled = true;
+            const originalText = speechBtn.innerHTML;
+            speechBtn.innerHTML = '<span class="animate-pulse">🔊 Generating...</span>';
+
+                const apiUrl = BACKEND_API;
+
+            // Instructing the AI to use an appropriate tone for a mentor
+            const userPrompt = `Speak this text in a firm, informative, and encouraging mentor voice: "${text}"`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userPrompt }] }],
+                generationConfig: {
+                    responseModalities: ["AUDIO"],
+                    speechConfig: {
+                        voiceConfig: {
+                            prebuiltVoiceConfig: { voiceName: "Kore" } // A firm, informative voice
+                        }
+                    }
+                },
+                model: "gemini-2.5-flash-preview-tts"
+            };
+
+            try {
+                const result = await fetchWithRetry(apiUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        model: "gemini-1.5-flash",
+        payload
+    })
+});
+
+
+                const part = result?.candidates?.[0]?.content?.parts?.[0];
+                const audioData = part?.inlineData?.data;
+                const mimeType = part?.inlineData?.mimeType;
+
+                if (audioData && mimeType && mimeType.startsWith("audio/")) {
+                    const rateMatch = mimeType.match(/rate=(\d+)/);
+                    const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
+
+                    const pcmData = base64ToArrayBuffer(audioData);
+                    const pcm16 = new Int16Array(pcmData);
+                    const wavBlob = pcmToWav(pcm16, sampleRate);
+                    const audioUrl = URL.createObjectURL(wavBlob);
+
+                    const audio = new Audio(audioUrl);
+                    audio.play();
+                    speechBtn.innerHTML = '🎧 Playing...';
+
+                    audio.onended = () => {
+                        speechBtn.innerHTML = originalText;
+                        speechBtn.disabled = false;
+                    };
+                } else {
+                    throw new Error("TTS API did not return valid audio data.");
+                }
+            } catch (error) {
+                console.error("TTS Error:", error);
+                speechBtn.innerHTML = "❌ Audio Failed";
+                setTimeout(() => {
+                    speechBtn.innerHTML = originalText;
+                    speechBtn.disabled = false;
+                }, 3000);
+            }
+        }
+
+
+        // --- Navigation Logic (Existing) ---
+        window.navigate = function(page) {
+            if (page === currentPage) return;
+
+            // Fade out current page
+            const currentElement = pageElements[currentPage];
+            if (currentElement) {
+                currentElement.classList.remove('active');
+                setTimeout(() => {
+                    currentElement.classList.add('hidden');
+                }, 500); // Wait for transition to finish
+            }
+
+            currentPage = page;
+
+            // Fade in new page
+            const newElement = pageElements[currentPage];
+            if (newElement) {
+                newElement.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    newElement.classList.add('active');
+                });
+            }
+
+            // Update active navigation link
+            navLinks.forEach(link => {
+                link.classList.remove('text-blue-500', 'font-bold');
+                link.classList.add('text-gray-300', 'font-medium');
+                if (link.dataset.page === page) {
+                    link.classList.add('text-blue-500', 'font-bold');
+                    link.classList.remove('text-gray-300', 'font-medium');
+                }
+            });
+        }
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                navigate(link.dataset.page);
+            });
+        });
+
+        // JSON Schema for strict, structured output from Gemini
+        const REPORT_SCHEMA = {
+            type: "OBJECT",
+            properties: {
+                score: {
+                    type: "STRING",
+                    description: "Score out of 100, formatted as 'X/100 (Level)', where Level is Beginner, Intermediate, or Advanced."
+                },
+                summary: {
+                    type: "STRING",
+                    description: "A 3-4 line professional and honest summary of the overall repository status."
+                },
+                recruiterView: {
+                    type: "STRING",
+                    description: "Analysis of hire-readiness signals and commercial potential."
+                },
+                mentorView: {
+                    type: "STRING",
+                    description: "Constructive growth guidance and next steps for the developer."
+                },
+                improvementRoadmap: {
+                    type: "STRING",
+                    description: "A personalized, numbered list of 5-7 specific, actionable steps the user must take to increase their evaluation score and improve the repository maturity."
+                },
+                skillsInferred: {
+                    type: "ARRAY",
+                    items: { type: "STRING" },
+                    description: "A list of technical skills demonstrated by the code and project structure (e.g., 'React Hooks', 'Data Normalization', 'Python FastAPI')."
+                },
+                interviewQuestions: {
+                    type: "ARRAY",
+                    items: { type: "STRING" },
+                    description: "3-5 challenging interview questions based on the inferred technical skills."
+                },
+                projectCompletionIndex: {
+                    type: "NUMBER",
+                    description: "Estimated percentage of project completion (0-100)."
+                },
+                nextBestCommit: {
+                    type: "STRING",
+                    description: "A single, highly prioritized suggestion for the next commit."
+                },
+                commitStoryAnalysis: {
+                    type: "STRING",
+                    description: "Analysis of what the commit history reveals about the development process and consistency."
+                },
+                codeSmellExplanation: {
+                    type: "STRING",
+                    description: "A precise explanation of why the most critical code smell found in the project matters."
+                },
+                confidenceNote: {
+                    type: "STRING",
+                    description: "A note on what is certain (project type) vs. inferred (details like test coverage, since actual scanning is not possible)."
+                },
+                detailedEvaluation: {
+                    type: "OBJECT",
+                    properties: {
+                        codeQuality: { type: "STRING" },
+                        projectStructure: { type: "STRING" },
+                        documentationQuality: { type: "STRING" },
+                        testingMaintainability: { type: "STRING" },
+                        gitPractices: { type: "STRING" },
+                        realWorldRelevance: { type: "STRING" }
+                    },
+                    description: "Detailed analysis for each required category."
+                }
+            },
+            required: [
+                "score", "summary", "recruiterView", "mentorView", "improvementRoadmap", "skillsInferred",
+                "projectCompletionIndex", "nextBestCommit", "commitStoryAnalysis",
+                "codeSmellExplanation", "confidenceNote", "detailedEvaluation", "interviewQuestions"
+            ]
+        };
+
+        // System Instruction to define the AI's persona and rules
+        const SYSTEM_PROMPT = `You are an AI GitHub Repository Evaluator and Coding Mentor. Your task is to analyze a repository based on the user's input URL, but since you cannot access external content, you MUST perform a detailed analysis on a HYPOTHETICAL project that would typically reside at that URL.
+
+Follow these strict rules for the analysis:
+1.  **Persona:** Act as a Repository Mirror that truthfully reflects code quality, developer maturity, and next steps. Be highly professional and detailed.
+2.  **Output:** MUST strictly adhere to the provided JSON schema.
+3.  **Tone:** Be precise, constructive, and realistic. Use no fluff or silly comments.
+4.  **Content:** Evaluate all required sections, including generating a numbered, step-by-step **improvementRoadmap** aimed at increasing the evaluation score.
+5.  **Evidence:** Base your hypothetical findings on common pitfalls and best practices for the type of project inferred from the URL (e.g., a URL with 'e-commerce-backend' implies Node/Python, database interaction, and API endpoints).`;
+
+        
+        /**
+         * Renders the generated report content onto the page.
+         * @param {Object} data - The parsed JSON report data.
+         * @param {string} username - Extracted GitHub username.
+         * @param {string} repoName - Extracted GitHub repository name.
+         */
+        function renderReport(data, username, repoName) {
+            reportContainer.classList.remove('hidden');
+
+            const scoreParts = data.score.match(/(\d+)\/100 \((\w+)\)/);
+            const scoreValue = scoreParts ? scoreParts[1] : 'N/A';
+            const level = scoreParts ? scoreParts[2] : 'Unknown';
+
+            let levelColor = 'bg-gray-500';
+            if (level === 'Beginner') levelColor = 'bg-red-500';
+            else if (level === 'Intermediate') levelColor = 'bg-yellow-500';
+            else if (level === 'Advanced') levelColor = 'bg-green-500';
+
+            // Function to generate a report item card
+            const createCard = (title, content, color = 'border-gray-700') => `
+                <div class="grid-card ${color}">
+                    <h3 class="text-xl font-bold mb-2 text-white border-b border-gray-600 pb-1">${title}</h3>
+                    <p class="text-gray-400 leading-relaxed whitespace-pre-wrap text-sm">${content}</p>
+                </div>
+            `;
+
+            // Main Report HTML structure
+            reportContainer.innerHTML = `
+                <!-- Repository Header -->
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg mb-8 border border-gray-700">
+                    <h2 class="text-3xl font-extrabold text-blue-500 mb-2">
+                        <span class="text-gray-400">@</span>${username}<span class="text-gray-400">/</span>${repoName}
+                    </h2>
+                    <p class="text-gray-500 text-sm">GitHub Repository Analysis</p>
+                </div>
+
+                <div class="score-box mb-8 flex flex-col sm:flex-row justify-between items-center transform scale-95 animate-fade-in-up">
+                    <div>
+                        <p class="text-sm font-semibold opacity-75">AI Evaluation Score</p>
+                        <span class="text-6xl font-extrabold tracking-tight">${scoreValue}/100</span>
+                    </div>
+                    <div class="text-center sm:text-right mt-4 sm:mt-0">
+                        <p class="text-sm opacity-75">Overall Maturity</p>
+                        <span class="level-badge ${levelColor}">${level.toUpperCase()}</span>
+                    </div>
+                </div>
+
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg mb-8 transition duration-500 hover:shadow-xl border border-gray-700">
+                    <h2 class="text-2xl font-bold text-blue-500 mb-2 border-b border-gray-600 pb-1">Summary & Assessment</h2>
+                    <p class="text-lg text-gray-300 font-medium whitespace-pre-wrap">${data.summary}</p>
+                </div>
+
+                <!-- Improvement Roadmap (New Section) -->
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg mb-8 transition duration-500 hover:shadow-xl border border-gray-700 border-t-4 border-purple-500">
+                    <h2 class="text-2xl font-bold text-purple-500 mb-4 border-b border-gray-600 pb-1">
+                        📈 Personalized Improvement Roadmap
+                    </h2>
+                    <p class="text-gray-400 mb-4 text-sm">
+                        Follow these steps to mature your repository and achieve a higher evaluation score:
+                    </p>
+                    <div class="text-gray-300 whitespace-pre-wrap leading-loose">${data.improvementRoadmap}</div>
+                </div>
+
+
+                <div class="grid md:grid-cols-2 gap-6 mb-8">
+                    ${createCard('Recruiter View (Hire Readiness)', data.recruiterView, 'border-blue-500')}
+                    <div class="grid-card border-green-500">
+                        <h3 class="text-xl font-bold mb-2 text-white border-b border-gray-600 pb-1 flex justify-between items-center">
+                            Mentor View (Growth Guidance)
+                            <button id="speechBtn"
+                                    onclick="speakMentorFeedback('${data.mentorView.replace(/'/g, "\\'")}')"
+                                    class="text-xs bg-green-600 text-white px-3 py-1 rounded-full hover:bg-green-700 transition duration-150 transform hover:scale-105 disabled:opacity-50">
+                                👂 Read Aloud ✨
+                            </button>
+                        </h3>
+                        <p class="text-gray-400 leading-relaxed whitespace-pre-wrap text-sm">${data.mentorView}</p>
+                    </div>
+                </div>
+
+                <!-- AI Interview Questions Section -->
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg mb-8 transition duration-500 hover:shadow-xl border border-gray-700 border-t-4 border-yellow-500">
+                    <h2 class="text-2xl font-bold text-yellow-500 mb-4 border-b border-gray-600 pb-1">
+                        🎯 AI Interview Prep: Targeted Questions
+                    </h2>
+                    <p class="text-gray-400 mb-4 text-sm">
+                        These questions test your deeper understanding of the skills demonstrated in your project.
+                    </p>
+                    <ol class="list-decimal list-inside text-gray-400 pl-4 space-y-3">
+                        ${data.interviewQuestions.map(q => `<li class="font-medium">${q}</li>`).join('')}
+                    </ol>
+                </div>
+
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-white mb-4 border-b border-gray-600 pb-1">Detailed Evaluation Categories</h2>
+                    <div class="grid md:grid-cols-3 gap-6">
+                        ${createCard('Code Quality & Readability', data.detailedEvaluation.codeQuality)}
+                        ${createCard('Project Structure', data.detailedEvaluation.projectStructure)}
+                        ${createCard('Documentation Quality', data.detailedEvaluation.documentationQuality)}
+                        ${createCard('Testing & Maintainability', data.detailedEvaluation.testingMaintainability)}
+                        ${createCard('Git Practices & Consistency', data.detailedEvaluation.gitPractices)}
+                        ${createCard('Real-World Relevance', data.detailedEvaluation.realWorldRelevance)}
+                    </div>
+                </div>
+
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg mb-8 border border-gray-700">
+                    <h2 class="text-2xl font-bold text-red-500 mb-4 border-b border-gray-600 pb-1">Extra Intelligence & Action Items</h2>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        ${createCard('Commit Story Analysis', data.commitStoryAnalysis, 'border-purple-500')}
+                        ${createCard('Next-Best-Commit Suggestion', data.nextBestCommit, 'border-yellow-500')}
+                        ${createCard('Code Smell Explanation', data.codeSmellExplanation, 'border-red-500')}
+                        <div class="grid-card col-span-1 md:col-span-2 border-green-500">
+                            <h3 class="text-xl font-bold mb-2 text-white border-b border-gray-600 pb-1">Skills Inferred (What you demonstrated)</h3>
+                            <ul class="list-disc list-inside text-gray-400 pl-4 text-sm">
+                                ${data.skillsInferred.map(skill => `<li>${skill}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="mt-6 pt-4 border-t border-gray-700">
+                        <h3 class="text-lg font-bold text-white mb-1">Project Completion Index: <span class="text-blue-500">${data.projectCompletionIndex}%</span></h3>
+                        <p class="text-sm text-gray-500">Confidence Note: <span class="italic">${data.confidenceNote}</span></p>
+                    </div>
+                </div>
+            `;
+            // Scroll to the top of the report after generation
+            pageElements.evaluator.scrollTop = 0;
+        }
+
+
+        async function analyzeRepository() {
+            const fullUrl = repoUrlInput.value.trim();
+
+            // Reset UI and validation messages
+            reportContainer.classList.add('hidden');
+            statusMessageDiv.classList.add('hidden');
+            analyzeBtn.disabled = true;
+
+            // --- 1. Robust URL Validation and Parsing ---
+            const githubRegex = /^(?:https?:\/\/)?(?:www\.)?github\.com\/([a-zA-Z0-9_-]+)\/([a-zA-Z0-9_.-]+)(?:\/.*)?$/i;
+            const match = fullUrl.match(githubRegex);
+
+            if (!match) {
+                // Invalid Link Handling
+                statusMessageDiv.textContent = "Error: Invalid link or improper GitHub URL format. Please ensure the URL is in the format github.com/user/repo.";
+                statusMessageDiv.classList.remove('hidden');
+                statusMessageDiv.className = 'text-sm mt-3 text-center transition-all duration-300 text-red-500 font-bold';
+                analyzeBtn.disabled = false;
+                loadingDiv.classList.add('hidden');
+                return;
+            }
+
+            const username = match[1];
+            const repoName = match[2].replace(/\.git$/, ''); // Remove .git extension if present
+
+            // Show loading
+            loadingDiv.classList.remove('hidden');
+
+            const userQuery = `Analyze the repository with the inferred user "${username}" and repository name "${repoName}". Generate the full evaluation report as a single JSON object. Infer the project's purpose and provide all the requested analysis points, including the detailed personalized roadmap.`;
+
+            const apiUrl = BACKEND_API;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+                generationConfig: {
+                    responseMimeType: "application/json"
+                }
+            };
+
+            try {
+                            const result = await fetchWithRetry(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: "gemini-1.5-flash",
+                    payload
+                })
+            });
+
+
+                const jsonString = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (jsonString) {
+                    const reportData = JSON.parse(jsonString);
+                    renderReport(reportData, username, repoName); // Pass user and repo names
+                    // Dynamic UI: Success message
+                    statusMessageDiv.textContent = "Analysis Complete! Review the detailed report and roadmap below.";
+                    statusMessageDiv.classList.remove('hidden');
+                    statusMessageDiv.className = 'text-sm mt-3 text-center transition-all duration-300 text-green-500 font-bold';
+                } else {
+                    throw new Error("API returned an unexpected response structure or empty content.");
+                }
+
+            } catch (error) {
+                // Dynamic UI: Failure message
+                statusMessageDiv.textContent = `Analysis failed due to an API error: ${error.message}. Please try again later.`;
+                statusMessageDiv.classList.remove('hidden');
+                statusMessageDiv.className = 'text-sm mt-3 text-center transition-all duration-300 text-red-500 font-bold';
+                reportContainer.classList.add('hidden');
+                console.error("Evaluation Error:", error);
+            } finally {
+                loadingDiv.classList.add('hidden');
+                analyzeBtn.disabled = false;
+            }
+        }
+
+        /**
+         * New LLM Feature: Refines documentation text based on user-selected style.
+         */
+        async function refineText() {
+            const text = refinerInput.value.trim();
+            const style = refinerStyle.value;
+
+            if (text.length < 10) {
+                refinerStatus.textContent = "Please enter more text to refine (minimum 10 characters).";
+                refinerStatus.classList.remove('hidden');
+                refinerStatus.className = 'text-sm mt-3 text-center transition-all duration-300 text-yellow-400 font-bold';
+                return;
+            }
+
+            // UI State
+            refineBtn.disabled = true;
+            refinerOutput.innerHTML = '<span class="animate-pulse text-purple-400">Refining text with Gemini...</span>';
+            refinerStatus.classList.add('hidden');
+
+            const apiUrl = BACKEND_API;
+
+            const systemPrompt = `You are an expert technical editor. Your goal is to rewrite the user's provided text to meet the requested style. Preserve all core technical facts and details. Do not add introductory or concluding commentary—only provide the rewritten text.`;
+            const userQuery = `Refine the following text block to be "${style}":\n\n---START OF TEXT---\n${text}\n---END OF TEXT---`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+            };
+
+            try {
+                const result = await fetchWithRetry(apiUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        model: "gemini-1.5-flash",
+        payload
+    })
+});
+
+                const refinedText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (refinedText) {
+                    refinerOutput.textContent = refinedText;
+                    refinerStatus.textContent = "Text refinement complete!";
+                    refinerStatus.classList.remove('hidden');
+                    refinerStatus.className = 'text-sm mt-3 text-center transition-all duration-300 text-green-500 font-bold';
+                } else {
+                    throw new Error("Gemini returned an empty response.");
+                }
+
+            } catch (error) {
+                refinerOutput.textContent = "Error during refinement. Could not connect to the AI editor.";
+                refinerStatus.textContent = `Refinement failed: ${error.message}`;
+                refinerStatus.classList.remove('hidden');
+                refinerStatus.className = 'text-sm mt-3 text-center transition-all duration-300 text-red-500 font-bold';
+                console.error("Refinement Error:", error);
+            } finally {
+                refineBtn.disabled = false;
+            }
+        }
+
+        analyzeBtn.addEventListener('click', analyzeRepository);
+        refineBtn.addEventListener('click', refineText);
+
+        // Initial page navigation setup
+        document.addEventListener('DOMContentLoaded', () => {
+            navigate('home');
+        });
+
+    </script>
+</body>
+</html>
